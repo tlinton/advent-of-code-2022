@@ -1,19 +1,27 @@
+import Data.List
 import Text.Read
+
+data Elf = Elf {
+    elfId :: Int,
+    calories :: Int
+} deriving (Show)
+
+newElf :: Elf -> Int -> Elf
+newElf elf newCalories =
+    Elf { elfId = elfId elf + 1, calories = newCalories }
+
+updateCalories :: Elf -> Int -> Elf
+updateCalories elf moreCalories =
+    Elf { elfId = elfId elf, calories = calories elf + moreCalories}
 
 data State = State {
     hasElf :: Bool,
-    currentElf :: Int,
-    currentCalories :: Int,
-    maxElf :: Int,
-    maxCalories :: Int
+    elves :: [Elf]
 } deriving (Show)
 
 initState = State {
     hasElf = False,
-    currentElf = 0,
-    currentCalories = 0,
-    maxElf = 0,
-    maxCalories = 0
+    elves = []
 }
 
 handleLine :: State -> String -> State
@@ -24,15 +32,26 @@ handleLine inputState line =
     where
         handleCalories state calories =
             if hasElf state then
-                updateMax state { currentCalories = currentCalories state + calories }
+                state { elves = updateElf (elves state) calories }
             else
-                updateMax state { hasElf = True, currentElf = currentElf state + 1, currentCalories = calories }
-        updateMax state =
-            if currentCalories state > maxCalories state then
-                state { maxCalories = currentCalories state, maxElf = currentElf state}
-            else
-                state
+                state { hasElf = True, elves = addElf (elves state) calories }
+            where
+                updateElf [] calories =
+                    [Elf { elfId = 1, calories = calories }]
+                updateElf (elf:elves) calories =
+                    updateCalories elf calories : elves
+                addElf [] calories =
+                    [Elf { elfId = 1, calories = calories }]
+                addElf (elf:elves) calories =
+                    newElf elf calories : elf : elves
+
+reverseCompare :: Ord a => a -> a -> Ordering
+reverseCompare a b
+    | a < b = GT
+    | a == b = EQ
+    | a > b = LT
 
 main = do
-    content <- getContents
-    print $ foldl handleLine initState (lines content)
+    contents <- getContents
+    let elfData = foldl handleLine initState (lines contents)
+    print $ sum $ take 3 $ sortBy reverseCompare $ map calories (elves elfData)
