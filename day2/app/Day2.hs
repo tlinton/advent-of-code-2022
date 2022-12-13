@@ -8,11 +8,22 @@ parseShape :: String -> Maybe Shape
 parseShape [] = Nothing
 parseShape (x:xs) = case x of
     'A' -> Just Rock
-    'X' -> Just Rock
     'B' -> Just Paper
-    'Y' -> Just Paper
     'C' -> Just Scissor
-    'Z' -> Just Scissor
+    _ -> Nothing
+
+data Outcome =
+    ILose |
+    Draw |
+    IWin
+    deriving (Eq, Show)
+
+parseOutcome :: String -> Maybe Outcome
+parseOutcome [] = Nothing
+parseOutcome (x:xs) = case x of
+    'X' -> Just ILose
+    'Y' -> Just Draw
+    'Z' -> Just IWin
     _ -> Nothing
 
 instance Ord Shape where 
@@ -27,9 +38,24 @@ instance Ord Shape where
     compare Scissor Paper = GT
     compare Scissor Scissor = EQ
 
-parseShapes :: String -> [Maybe Shape]
-parseShapes line =
-    map parseShape $ words line
+parseInstructions :: String -> Maybe (Shape, Outcome)
+parseInstructions line =
+    parseParts $ words line
+    where
+        parseParts (a : b : _) = combineTuple (parseShape a) (parseOutcome b)
+        parseParts _ = Nothing
+        combineTuple (Just a) (Just b) = Just (a, b)
+        combineTuple _ _ = Nothing
+
+createShapes :: Maybe (Shape, Outcome) -> [Maybe Shape]
+createShapes (Just (Rock, ILose)) = [Just Rock, Just Scissor]
+createShapes (Just (Rock, IWin)) = [Just Rock, Just Paper]
+createShapes (Just (Paper, ILose)) = [Just Paper, Just Rock]
+createShapes (Just (Paper, IWin)) = [Just Paper, Just Scissor]
+createShapes (Just (Scissor, ILose)) = [Just Scissor, Just Paper]
+createShapes (Just (Scissor, IWin)) = [Just Scissor, Just Rock]
+createShapes (Just (a, Draw)) = [Just a, Just a]
+createShapes Nothing = [Nothing, Nothing]
 
 calculateScore :: [Maybe Shape] -> Int
 calculateScore (Just h1 : Just h2 : _) =
@@ -47,6 +73,6 @@ calculateScore (Just h1 : Just h2 : _) =
 main :: IO()
 main = do
     contents <- getContents
-    let shapes = map parseShapes $ lines contents
+    let shapes = map (createShapes . parseInstructions) $ lines contents
     let scores = map calculateScore shapes
     print $ sum scores
