@@ -1,0 +1,17 @@
+cabal-version:      2.4
+name:               day5
+version:            0.1.0.0
+author:             Tobias Linton
+maintainer:         tobias.linton@edgeware.tv
+
+executable day5-1
+    main-is:          day5-1.hs
+    build-depends:    base ^>=4.16.3.0, parsec == 3.1.15.1, Stack == 0.4.0, vector == 0.13.0.0
+    hs-source-dirs:   day5/app
+    default-language: Haskell2010
+
+executable day5-2
+    main-is:          day5-2.hs
+    build-depends:    base ^>=4.16.3.0
+    hs-source-dirs:   day5/app
+    default-language: Haskell2010
