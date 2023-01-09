@@ -15,11 +15,8 @@ data Token = Empty
 createStacks :: Stacks
 createStacks = Vec.empty
 
-parseLine :: String -> [Token]
-parseLine line =
-    case Parsec.parse parser "" line of
-        Left _ -> []
-        Right result -> result
+parseInstructions :: String -> Either Parsec.ParseError [[Token]]
+parseInstructions = Parsec.parse parser ""
     where
         empty = Parsec.count 3 Parsec.space >> return Empty
         crate = do
@@ -38,7 +35,8 @@ parseLine line =
             Parsec.string " to "
             dst <- Parsec.many Parsec.digit
             return $ Move (read count) (read src) (read dst)
-        parser = Parsec.choice [empty, crate, col, move] `Parsec.sepBy` Parsec.space
+        line = Parsec.choice [empty, crate, col, move] `Parsec.sepBy` Parsec.char ' '
+        parser = line `Parsec.endBy` Parsec.endOfLine
 
 pushData :: Stacks -> [Maybe Char] -> Stacks
 pushData stacks newData =
@@ -56,4 +54,5 @@ main = do
     let stacks = createStacks
     --print $ pushData (pushData stacks [Just 'A', Nothing, Just 'C']) [Just 'B', Just 'z', Just 'F']
     --print $ parseLine "[A] [B]"
-    print $ map parseLine (lines instructions)
+    --print $ map parseLine (lines instructions)
+    print $ parseInstructions instructions
