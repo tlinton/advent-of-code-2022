@@ -1,6 +1,7 @@
 import qualified Data.Stack as St
 import Data.Vector ((!?))
 import qualified Data.Vector as Vec
+import Text.Parsec ((<|>))
 import qualified Text.Parsec as Parsec
 import qualified Data.Char as Parsec
 
@@ -24,19 +25,22 @@ parseInstructions = Parsec.parse parser ""
             crateId <- Parsec.anyChar
             Parsec.char ']'
             return $ Crate crateId
+        crateLine = Parsec.parserTrace "crateLine" >> Parsec.choice [crate, empty] `Parsec.sepBy` Parsec.char ' '
         col = do
-            idx <- Parsec.many Parsec.digit
+            idx <- Parsec.many1 Parsec.digit
             return $ Col (read idx)
-        move = do
+        colLine = Parsec.parserTrace "colLine" >> Parsec.many (Parsec.char ' ') >> col `Parsec.sepEndBy` Parsec.many1 (Parsec.char ' ')
+        moveLine = do
+            Parsec.parserTrace "moveLine"
             Parsec.string "move "
-            count <- Parsec.many Parsec.digit
+            count <- Parsec.many1 Parsec.digit
             Parsec.string " from "
-            src <- Parsec.many Parsec.digit
+            src <- Parsec.many1 Parsec.digit
             Parsec.string " to "
-            dst <- Parsec.many Parsec.digit
-            return $ Move (read count) (read src) (read dst)
-        line = Parsec.choice [empty, crate, col, move] `Parsec.sepBy` Parsec.char ' '
-        parser = line `Parsec.endBy` Parsec.endOfLine
+            dst <- Parsec.many1 Parsec.digit
+            return [Move (read count) (read src) (read dst)]
+        line = Parsec.choice [Parsec.try moveLine, Parsec.try crateLine, Parsec.try colLine]
+        parser = line `Parsec.sepBy` Parsec.endOfLine
 
 pushData :: Stacks -> [Maybe Char] -> Stacks
 pushData stacks newData =
