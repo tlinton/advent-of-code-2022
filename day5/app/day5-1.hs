@@ -19,19 +19,18 @@ createStacks = Vec.empty
 parseInstructions :: String -> Either Parsec.ParseError [[Token]]
 parseInstructions = Parsec.parse parser ""
     where
-        empty = Parsec.parserTraced "empty" $ Parsec.count 3 Parsec.space >> return Empty
+        empty = Parsec.count 3 Parsec.space >> return Empty
         crate = do
-            Parsec.parserTraced "crate" $ Parsec.char '['
+            Parsec.char '['
             crateId <- Parsec.anyChar
             Parsec.char ']'
             return $ Crate crateId
-        crateLine = Parsec.parserTrace "crateLine" >> Parsec.choice [crate, empty] `Parsec.sepBy1` Parsec.char ' '
+        crateLine = Parsec.choice [crate, empty] `Parsec.sepBy1` Parsec.char ' '
         col = do
             idx <- Parsec.many1 Parsec.digit
             return $ Col (read idx)
-        colLine = Parsec.parserTrace "colLine" >> Parsec.char ' ' >> col `Parsec.sepEndBy` Parsec.many1 (Parsec.char ' ')
+        colLine = Parsec.char ' ' >> col `Parsec.sepEndBy` Parsec.many1 (Parsec.char ' ')
         moveLine = do
-            Parsec.parserTrace "moveLine"
             Parsec.string "move "
             count <- Parsec.many1 Parsec.digit
             Parsec.string " from "
@@ -39,12 +38,7 @@ parseInstructions = Parsec.parse parser ""
             Parsec.string " to "
             dst <- Parsec.many1 Parsec.digit
             return [Move (read count) (read src) (read dst)]
-        line = Parsec.choice [
-            Parsec.parserTraced "try crateLine" $ Parsec.try crateLine,
-            Parsec.parserTraced "try colLine" $ Parsec.try colLine,
-            Parsec.parserTraced "try moveLine" $ moveLine
-            ]
-        --line = Parsec.choice [Parsec.try moveLine, Parsec.try crateLine, Parsec.try colLine]
+        line = Parsec.choice [Parsec.try crateLine, Parsec.try colLine, Parsec.try moveLine]
         parser = line `Parsec.sepEndBy` Parsec.many1 Parsec.endOfLine
 
 pushData :: Stacks -> [Maybe Char] -> Stacks
