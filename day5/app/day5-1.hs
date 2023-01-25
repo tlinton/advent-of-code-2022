@@ -19,17 +19,17 @@ createStacks = Vec.empty
 parseInstructions :: String -> Either Parsec.ParseError [[Token]]
 parseInstructions = Parsec.parse parser ""
     where
-        empty = Parsec.count 3 Parsec.space >> return Empty
+        empty = Parsec.parserTraced "empty" $ Parsec.count 3 Parsec.space >> return Empty
         crate = do
-            Parsec.char '['
+            Parsec.parserTraced "crate" $ Parsec.char '['
             crateId <- Parsec.anyChar
             Parsec.char ']'
             return $ Crate crateId
-        crateLine = Parsec.parserTrace "crateLine" >> Parsec.choice [crate, empty] `Parsec.sepBy` Parsec.char ' '
+        crateLine = Parsec.parserTrace "crateLine" >> Parsec.choice [crate, empty] `Parsec.sepBy1` Parsec.char ' '
         col = do
             idx <- Parsec.many1 Parsec.digit
             return $ Col (read idx)
-        colLine = Parsec.parserTrace "colLine" >> Parsec.many (Parsec.char ' ') >> col `Parsec.sepEndBy` Parsec.many1 (Parsec.char ' ')
+        colLine = Parsec.parserTrace "colLine" >> Parsec.char ' ' >> col `Parsec.sepEndBy` Parsec.many1 (Parsec.char ' ')
         moveLine = do
             Parsec.parserTrace "moveLine"
             Parsec.string "move "
@@ -39,8 +39,13 @@ parseInstructions = Parsec.parse parser ""
             Parsec.string " to "
             dst <- Parsec.many1 Parsec.digit
             return [Move (read count) (read src) (read dst)]
-        line = Parsec.choice [Parsec.try moveLine, Parsec.try crateLine, Parsec.try colLine]
-        parser = line `Parsec.sepBy` Parsec.endOfLine
+        line = Parsec.choice [
+            Parsec.parserTraced "try crateLine" $ Parsec.try crateLine,
+            Parsec.parserTraced "try colLine" $ Parsec.try colLine,
+            Parsec.parserTraced "try moveLine" $ moveLine
+            ]
+        --line = Parsec.choice [Parsec.try moveLine, Parsec.try crateLine, Parsec.try colLine]
+        parser = line `Parsec.sepEndBy` Parsec.many1 Parsec.endOfLine
 
 pushData :: Stacks -> [Maybe Char] -> Stacks
 pushData stacks newData =
