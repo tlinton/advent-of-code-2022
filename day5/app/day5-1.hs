@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns #-}
 import qualified Data.Stack as St
 import Data.Vector ((!?))
 import qualified Data.Vector as Vec
@@ -50,6 +51,14 @@ pushData stacks newData =
             Nothing -> pushValue St.stackNew value
         pushValue stack (Just value) = St.stackPush stack value
         pushValue stack Nothing = stack
+
+runLine :: Stacks -> [Token] -> Stacks
+runLine stacks (Empty:rest) = stacks
+runLine stacks (Move{count, src, dst}:rest) = stacks
+
+runInstructions :: Stacks -> [[Token]] -> Stacks
+runInstructions stacks [] = stacks
+runInstructions stacks (instructions:rest) = runInstructions (runLine stacks instructions) rest
 
 main :: IO ()
 main = do
